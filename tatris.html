@@ -1,0 +1,420 @@
+<!doctype html>
+<head><center><font size="6"></font></center></head>
+<body>
+
+<script>
+var speed = { start: 0.6, decrement: 0.005, min: 0.1 };
+var score = 0;
+freedom = 80;
+var place =[];
+var spam =0;
+
+function spots(){
+ for(i=0;i<20;i++){
+  var n = 0;
+  while(n<10){
+   place.push(new block(n*30+15,i*30+15,"white", gameBoard));
+   n++
+  }
+ }
+}
+
+var gameBoard = {
+ canvas: document.createElement("canvas"),
+ start: function() {
+  n = 0; this.lower = 600; this.left=0; this.right=300; this.rotate=0;
+  document.addEventListener("keydown", keyInputs, false);
+  this.canvas.width = 300;
+  this.canvas.height = 600;
+  this.canvas.style = "border:2px solid #000000";
+  this.context = this.canvas.getContext("2d");
+  player.start();
+  this.interval = setInterval(updateGameArea, 20);
+  i=0; h=0;
+  while (h<21) {
+   this.context.moveTo(0, h*30);
+   this.context.lineTo(300, h*30);
+   this.context.stroke();
+   if (i<11){
+   this.context.moveTo(i*30,0);
+   this.context.lineTo(i*30, 600);
+   this.context.stroke();
+   }else{};
+   i++; h++;
+  };
+  gameBoard.update();
+  document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+  },
+ update: function(){
+ this.lMove = 0; this.rMove = 0; this.moveY = 0; var i = 0; hitSides(); floor(); spam=0; this.rotate =0;
+  for (i=0; i<4; i++) {
+   if (cube[i].borderY(0) == 1){
+    spam=1;
+   }if (cube[i].borderX(-30) == 1){
+    player.clear(); 
+    player.x += 30; 
+    player.update();
+   }if (cube[i].borderX(330) == 1){
+    player.clear(); 
+    player.x += -30; 
+    player.update();
+   }if (cube[i].borderX(0) == 1 || cube[i].borderX(this.left) == 1){
+    this.lMove = 1;
+   }if (cube[i].borderX(300) == 1 || cube[i].borderX(this.right) == 1){
+    this.rMove = 1;
+   }if (cube[i].borderX(this.left) == 1 && cube[i].borderX(this.right) == 1){
+    this.rotate = 1;
+   }if (cube[i].borderY(this.lower+30) == 1){
+    player.clear(); 
+    player.y += -30; 
+    player.update();
+   }if (cube[i].borderY(this.lower) == 1){
+    this.moveY = 1;
+    freedom += 1;
+    land();
+   }
+  }
+  player.update();
+ }
+}
+
+function hitSides(){
+ left =[0]; right=[300];
+ for(i=0;i<4;i++){
+  var n=0; var v=0;
+  while(n<200){
+   if ((cube[i].y == place[n].y && place[n].solid == 1) && (place[n].x == (cube[i].x+30))){
+    right[v]=cube[i].x-15; n = 200; v++;
+   }else if ((cube[i].y == place[n].y && place[n].solid == 1) && (place[n].x == (cube[i].x-30))){
+    left[v]=cube[i].x-15; n = 200; v++;
+   } 
+   n++;
+  }
+ }
+ var Left=mandM(left,0); var Right=mandM(right,1); 
+ gameBoard.right= Right;
+ gameBoard.left=Left;
+}
+
+function floor(){
+ num = 600; possible=[600,600,600,600]; height=[0,0,0,0]; 
+ for(i=0;i<4;i++){
+  var n=0;
+  while(n<200){
+   if (((cube[i].x == place[n].x) && (place[n].solid == 1)) && (cube[i].y< place[n].y)){
+    possible[i]=place[n].y-15; n = 200;
+   } 
+   n++;
+  }
+ }
+ i=0;
+ while (i<4){
+  height[i]=cube[i].y;
+  i++;
+ }
+ var max=mandM(height,1); var min=mandM(possible,0); var minh=mandM(height,0); var maxp=mandM(possible,1);
+ var int =5; var t=0; var v=5; var s=5;
+ while(t<4){
+  if ((height[t]==max) && (possible[t] == min)){
+   num = min; t=5;
+  }else if (t==3){
+   int =0;
+  }
+  t++;
+ }
+ while(int<4){
+  if (((height[int] != max && height[int]!= minh) && (possible[int] == min)) && ((maxp-possible[int])<(max-height[int]) && (maxp-possible[int] !=0))){
+   num = min+(maxp-possible[int]); int=5; 
+  }else if (((height[int] != max && height[int]!= minh) && (possible[int] == min)) && ((maxp-possible[int])>(max-height[int]) && (maxp-possible[int] !=0))){
+   num = min+(max-height[int]); int=5; 
+  }else if (int==3){
+   s=0;
+  }
+  int++
+ }
+ while(s<4){
+  if (((height[s] != max) && (possible[s] == min)) && ((maxp-possible[s])<(max-height[s]) && (maxp-possible[s] !=0))){
+   num = min+(maxp-possible[s]); int=5; 
+  }else if (((height[s] != max) && (possible[s] == min)) && ((maxp-possible[s])>(max-height[s]) && (maxp-possible[s] !=0))){
+   num = min+(max-height[s]); int=5; 
+  }else if (s==3){
+   v=0;
+  }
+  s++;
+ }
+ while (v<4){
+  if (((height[v] != max) && (possible[v] == min)) && ((maxp-possible[v])==(max-height[v]) && (maxp-possible[v] !=0))){
+   num = min+(max-height[v]); v=5; 
+  } 
+  v++;
+ }
+ if (num>600){
+  num = 600;
+ }
+ gameBoard.lower = num;
+}
+
+function mandM(arr,what){
+var len = arr.length; var max = -Infinity; var min = Infinity;
+ if (what == 1){
+  while (len--) {
+   if (arr[len] > max) {
+    max = arr[len];
+   }
+  }
+  return max;
+ } else if(what==0){
+  while (len--) {
+   if (arr[len] < min) {
+    min = arr[len];
+   }
+  }
+ return min;
+ }
+}
+
+var scoreBoard = {
+ canvas: document.createElement("canvas"),
+ start: function() {
+  this.i = 0;
+  this.canvas.width = 150;
+  this.canvas.height = 600;
+  this.canvas.style = "border:2px solid #000000";
+  this.context = this.canvas.getContext("2d");
+  this.context.fillStyle = "black";
+  this.context.fillRect(0,0,150,600);
+  this.context.fillStyle = "white";
+  this.context.fillRect(10,75,130,130);
+  this.context.font = "40px Arial";
+  this.context.fillText("Tatris",25,50);  
+  this.context.fillText("Score:",15,250);  
+  this.context.font = "30px Arial";
+  this.context.fillText(score,5,280);
+  scoreBoard.update();
+  document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+ },
+ update: function() {
+  this.i = Math.floor(Math.random() * 7);
+  this.context.fillStyle = "Black";
+  this.context.fillRect(0,255,150,30);
+  this.context.fillStyle = "White";  
+ choose[this.i].place = scoreBoard; choose[this.i].positionX=75; choose[this.i].positionY=140;
+ choose[this.i].update();
+ },
+ updateScore: function(){
+  this.context.clearRect(0,255,150,30);
+  this.context.fillStyle = "Black";
+  this.context.fillRect(0,255,150,30);
+  this.context.fillStyle = "white";
+  this.context.font = "30px Arial";
+  this.context.fillText(score,5,280);
+ },
+ clear: function() {
+  this.context.clearRect(10,75, 130, 130);
+ }
+}
+
+function block(x,y,color,place) {
+ this.x =x; this.y=y;
+ this.color = color;
+ this.place = place;
+ this.solid = 0;
+ this.update = function(){
+  context = this.place.context;
+  context.fillStyle = "black";
+  context.fillRect(this.x-15.5,this.y-15.5,31,31);
+  context.fillStyle = this.color;
+  context.fillRect(this.x-14,this.y-14,28,28);
+ },
+ this.borderX = function(otherX){
+  if ((otherX == Math.round(this.x)-15) || (otherX == Math.round(this.x+15))){
+   return 1;
+  }else{
+   return 0;
+  }
+ },
+ this.borderY = function(otherY){
+  if ((otherY == Math.round(this.y)-15) || (otherY == Math.round(this.y+15))){
+   return 1;
+  }else{
+   return 0;
+  }
+ }
+}
+
+var cube = [new block(), new block(), new block(), new block()];
+
+function piece(place,positionX,positionY,color,bx0,by0,bx1,by1,bx2,by2,bx3,by3) {
+  this.positionX = positionX; this.positionY = positionY; var i = 0;
+  this.bx= [bx0,bx1,bx2,bx3]; this.by= [by0,by1,by2,by3]; this.btx= [bx0,bx1,bx2,bx3]; this.bty= [by0,by1,by2,by3];
+  this.color=color; this.place=place; this.width = 0; this.height = 0; 
+  while (i<4){
+   cube[i].x =this.bx[i]+this.positionX; cube[i].y =this.by[i]+this.positionY; 
+   cube[i].color = this.color; cube[i].place = this.place;
+   cube[i].positionX = cube[i].x; cube[i].positionY = cube[i].y;
+   i++;
+  }
+  if (this.by[3]>this.by[2]){
+   this.height = (this.by[3]+15)*2;
+  } else if(this.by[2]>this.by[1]) {
+   this.height = (this.by[2]+15)*2;
+  } else {
+   this.height = (this.by[1]+15)*2;
+  }
+  if (this.bx[3]>this.bx[2]){
+   this.width = (this.bx[3]+15)*2;
+  } else if(this.bx[2]>this.bx[1]) {
+   this.width = (this.bx[2]+15)*2;
+  } else {
+   this.width = (this.bx[1]+15)*2;
+  }
+ this.update = function(){
+ var i =0;
+ this.context = this.place.context;
+  for (i=0; i<4; i++) {
+   cube[i].x =this.positionX+this.bx[i]; cube[i].y =this.positionY+this.by[i]; 
+   cube[i].color = this.color; cube[i].place = this.place; 
+   cube[i].positionX = cube[i].x; cube[i].positionY = cube[i].y;
+   cube[i].update();
+  };
+ }
+}
+
+var squareP = new piece(scoreBoard,75,140,"yellow",-15,-15,15,-15,-15,15,15,15);
+var longP = new piece(scoreBoard,75,140,"lightblue",-45,0,-15,0,15,0,45,0);
+var zP = new piece(scoreBoard,75,140,"red",-30,-15,0,-15,0,15,30,15);
+var notZP = new piece(scoreBoard,75,140,"green",-30,15,0,15,0,-15,30,-15);
+var leftP = new piece(scoreBoard,75,140,"orange",-30,15,0,15,30,15,30,-15);
+var rightP = new piece(scoreBoard,75,140,"blue",-30,15,0,15,30,15,-30,-15);
+var tP = new piece(scoreBoard,75,140,"purple",-30,15,0,15,0,-15,30,15);
+
+var choose = [squareP,longP,zP,notZP,leftP,rightP,tP];
+
+
+var player = {
+ start: function(){
+ this.i = Math.floor(Math.random() * 7); 
+ this.height = choose[this.i].height; this.width = choose[this.i].width;
+ this.x = 150; this.y = this.height/2; player.angle = 0;
+ if ((this.width == 30) || (this.width == 90)){
+  this.x = 165;
+ }
+ this.update();
+ },
+ new: function(){
+ this.i = scoreBoard.i; player.angle = 3; rotate();
+ this.height = choose[this.i].height; this.width = choose[this.i].width;
+ this.x = 150; this.y = this.height/2; 
+ if ((this.width == 30) || (this.width == 90)){
+  this.x = 165;
+ }
+  this.update();
+ },
+ update: function(){
+  choose[this.i].place = gameBoard;
+  choose[this.i].positionY =this.y;
+  choose[this.i].positionX =this.x;
+  choose[this.i].update();
+ },
+ clear: function(){
+  this.return = choose[this.i].color;
+  choose[this.i].color = "white";
+  this.update();
+  choose[this.i].color = this.return;
+ },
+}
+
+function keyInputs(e){
+ var i = player.i;
+ var keyCode = e.keyCode; 
+ if ((keyCode == 83) && (gameBoard.moveY != 1)){ 
+  player.clear(); 
+  player.y += 30; 
+  player.update();
+ }; if ((keyCode == 68) && (gameBoard.rMove != 1)){
+  player.clear(); 
+  player.x += 30; 
+  player.update();
+ }; if ((keyCode == 65) && (gameBoard.lMove != 1)){ 
+  player.clear(); 
+  player.x += -30; 
+  player.update();
+ }; if ((keyCode==87 && i !=0) && gameBoard.rotate !=1){  
+  player.clear();
+  rotate();
+  player.update();
+ };  if ((keyCode==32 && spam == 0)){
+  spam = 1;
+  player.clear();
+  player.y = gameBoard.lower - player.height/2; 
+  freedom = 70;
+  player.update();
+ };  
+}
+
+function rotate(){
+ var int = player.i;
+ var i = 0; 
+ player.angle += 1;
+ if (player.angle == 1){
+ player.height = choose[int].width; player.width = choose[int].height;
+ player.x += 15; player.y += 15;
+ }if (player.angle == 2){
+ player.height = choose[int].height; player.width = choose[int].width;
+ player.x += -15; player.y += 15;
+ }if (player.angle == 3){
+ player.height = choose[int].width; player.width = choose[int].height;
+ player.x += -15; player.y += -15;
+ } if (player.angle == 4){
+ player.height = choose[int].height; player.width = choose[int].width;
+ player.x += 15; player.y += -15; player.angle = 0;
+ }
+ while (i<4){
+  choose[int].bx[i] = Math.round(choose[int].btx[i]*Math.cos(player.angle*(Math.PI)/2)-choose[int].bty[i]*Math.sin(player.angle*(Math.PI)/2));
+  choose[int].by[i] = Math.round(choose[int].btx[i]*Math.sin(player.angle*(Math.PI)/2)+choose[int].bty[i]*Math.cos(player.angle*(Math.PI)/2));
+  i++;
+ }
+}
+ 
+function occupy(){
+ for(i=0;i<4;i++){
+  var n=0;
+  while(n<200){
+   if ((cube[i].x == place[n].x) && (cube[i].y == place[n].y)){
+    place[n].color = player.return; place[n].update(); place[n].solid = 1;
+   }
+   n++;
+  }
+ }
+}
+
+function land(){
+ if (freedom == 100){
+  player.clear();
+  occupy();
+  player.new();
+  player.update();
+  scoreBoard.clear();
+  scoreBoard.update();
+  console.log(place)
+  freedom = 80;
+ }
+}
+
+
+function updateGameArea() {
+ gameBoard.update();
+}
+
+
+function gameStart(){
+ spots();
+ scoreBoard.start();
+ gameBoard.start();
+}
+
+gameStart();
+
+</script>
+</body>
+</html>
